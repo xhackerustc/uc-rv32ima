@@ -4,7 +4,7 @@ Run linux on various MCUs with the help of RISC-V emulator. This project uses [C
 ## How it works
 It uses one 8MB SPI PSRAM chip as the system memory. On startup, it initializes the PSRAM, and load linux kernel Image(an initramfs is embedded which is used as rootfs) and device tree binary from flash to PSRAM, then start the booting.
 
-- To improve the performance, a simple cache is implemented:
+- To improve the performance, a simple cache is implemented, it turns out we acchieved 95.1% cache hit during linux booting:
     - 4KB cache
     - two way set associative
     - 64B cacheline
@@ -12,7 +12,7 @@ It uses one 8MB SPI PSRAM chip as the system memory. On startup, it initializes 
 ## Difference from [tvlad1234's pico-rv32ima](https://github.com/tvlad1234/pico-rv32ima)
 - esp32c3 VS rp2040, although rp2040 will be supported too in uc-rv32ima
 - only one 8MB SPI PSRAM is needed
-- a simple cache mechanism is implemented
+- a simple cache mechanism is implemented, thus much better performance
 - no need sdcard
 
 ## Requirements
