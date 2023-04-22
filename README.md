@@ -8,6 +8,7 @@ It uses one 8MB SPI PSRAM chip as the system memory. On startup, it initializes 
     - 4KB cache
     - two way set associative
     - 64B cacheline
+    - LRU
 
 ## Difference from [tvlad1234's pico-rv32ima](https://github.com/tvlad1234/pico-rv32ima)
 - esp32c3 VS rp2040, although rp2040 will be supported too in uc-rv32ima
