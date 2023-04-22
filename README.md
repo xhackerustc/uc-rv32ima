@@ -1,5 +1,5 @@
 # uc-rv32ima
-Run linux on various MCUs with the help of RISC-V emulator. This project uses [CNLohr's mini-rv32ima](https://github.com/cnlohr/mini-rv32ima) RISC-V emulator core to run Linux on various MCUs such as ESP32C3, RP2040, STM32F103 etc. Although, only ESP32C3 is supported. In theory, ESP series SoCs are supported, but except ESP32C3 I don't have other SoCs' dev boards, so can't test them.
+Run linux on various MCUs with the help of RISC-V emulator. This project uses [CNLohr's mini-rv32ima](https://github.com/cnlohr/mini-rv32ima) RISC-V emulator core to run Linux on various MCUs such as ESP32C3, RP2040, STM32F103 etc. Although, only ESP32C3 is tested now. In theory, ESP series SoCs are supported, but except ESP32C3 I don't have other SoCs' dev boards, so I can't test them.
 
 ## How it works
 It uses one 8MB SPI PSRAM chip as the system memory. On startup, it initializes the PSRAM, and load linux kernel Image(an initramfs is embedded which is used as rootfs) and device tree binary from flash to PSRAM, then start the booting.
@@ -10,7 +10,7 @@ It uses one 8MB SPI PSRAM chip as the system memory. On startup, it initializes 
     - 64B cacheline
 
 ## Difference from [tvlad1234's pico-rv32ima](https://github.com/tvlad1234/pico-rv32ima)
-- esp32c3 VS rp2040, although rp2040 will be supported either in uc-rv32ima
+- esp32c3 VS rp2040, although rp2040 will be supported too in uc-rv32ima
 - only one 8MB SPI PSRAM is needed
 - a simple cache mechanism is implemented
 - no need sdcard
