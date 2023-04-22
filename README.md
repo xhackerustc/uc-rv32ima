@@ -35,3 +35,7 @@ It uses one 8MB SPI PSRAM chip as the system memory. On startup, it initializes 
     - 0x3ff000 main/uc.dtb
 
 - In no less than 1 sec, Linux kernel messages starts printing on the USB CDC console. The boot process from pressing reset button to linux shell takes about 1 minute and 20 seconds.
+
+
+https://user-images.githubusercontent.com/113400028/233765806-63810c28-1fe9-45fc-b7a3-8c76106ba86c.mp4
+
