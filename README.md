@@ -49,5 +49,7 @@ It uses one 8MB SPI PSRAM chip as the system memory. On startup, it initializes 
 - In no less than 1 sec, Linux kernel messages starts printing on the USB CDC console. The boot process from pressing reset button to linux shell takes about 1 minute and 20 seconds.
 
 
-https://user-images.githubusercontent.com/113400028/233765806-63810c28-1fe9-45fc-b7a3-8c76106ba86c.mp4
+
+
+https://user-images.githubusercontent.com/113400028/233841610-6e770b58-c1b3-48ad-8190-e623983dd8b3.mp4
 
