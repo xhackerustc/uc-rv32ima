@@ -9,7 +9,9 @@ Run linux on various MCUs with the help of RISC-V emulator. This project uses [C
 - A single RV32-IMC cpu core, well, this can be solved by patching the linux kernel to remove the 'A' extension usage
 - No MMU, well, this can be solved by using NOMMU
 - No enough memory, only 4MB flash and 400KB sram, well, this can be solved by adding one SPI PSRAM chip. However,
-- can't directly execute code from PSRAM as ESP32S3 do. The idea solution is to use a RISC-V IMA emulator, and use the PSRAM as the emulator's main system memory.
+- I can't make ESP32C3 directly executing code on PSRAM work as ESP32S3 does. If anyone knows the howto, kindly tell me, I really appreciate it;) Then we can directly run linux on ESP32C3!
+
+So far, the idea solution is to use a RISC-V IMA emulator, and use the PSRAM as the emulator's main system memory.
 
 ## How it works
 It uses one 8MB SPI PSRAM chip as the system memory. On startup, it initializes the PSRAM, and load linux kernel Image(an initramfs is embedded which is used as rootfs) and device tree binary from flash to PSRAM, then start the booting.
