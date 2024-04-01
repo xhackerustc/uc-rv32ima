@@ -7,10 +7,38 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_attr.h"
+#include "esp_flash.h"
+#include "esp_timer.h"
+#include "hal/usb_serial_jtag_ll.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 #include "psram.h"
+
+uint64_t GetTimeMicroseconds()
+{
+	return esp_timer_get_time();
+}
+
+int ReadKBByte(void)
+{
+	uint8_t rxchar;
+	int rread;
+
+	rread = usb_serial_jtag_ll_read_rxfifo(&rxchar, 1);
+
+	if (rread > 0)
+		return rxchar;
+	else
+		return -1;
+}
+
+int IsKBHit(void)
+{
+	return usb_serial_jtag_ll_rxfifo_data_available();
+}
 
 #define GPIO_MOSI	7
 #define GPIO_MISO	2
@@ -26,8 +54,7 @@
 #define CMD_RESET	0x99
 #define CMD_READ_ID	0x9f
 
-extern const char *TAG;
-spi_device_handle_t handle;
+static spi_device_handle_t handle;
 
 static esp_err_t psram_send_cmd(spi_device_handle_t h, const uint8_t cmd)
 {
@@ -70,9 +97,9 @@ int psram_init(void)
 		.flags = 0,
 	};
 
-	ESP_LOGI(TAG, "SPI_HOST_ID = %d\n", SPI_HOST_ID);
+	printf("SPI_HOST_ID = %d\n", SPI_HOST_ID);
 	ret = spi_bus_initialize(SPI_HOST_ID, &spi_bus_config, SPI_DMA_CH_AUTO);
-	ESP_LOGI(TAG, "spi_bus_initialize = %d\n", ret);
+	printf("spi_bus_initialize = %d\n", ret);
 	if (ret != ESP_OK)
 		return -1;
 
@@ -85,7 +112,7 @@ int psram_init(void)
 	devcfg.address_bits = 24;
 
 	ret = spi_bus_add_device(SPI_HOST_ID, &devcfg, &handle);
-	ESP_LOGI(TAG, "spi_bus_add_device = %d\n", ret);
+	printf("spi_bus_add_device = %d\n", ret);
 	if (ret != ESP_OK)
 		return -1;
 
@@ -104,11 +131,11 @@ int psram_init(void)
 	if (ret != ESP_OK)
 		return -1;
 
-	ESP_LOGI(TAG, "PSRAM ID: %02x%02x%02x%02x%02x%02x\n", id[0], id[1], id[2], id[3], id[4], id[5]);
+	printf("PSRAM ID: %02x%02x%02x%02x%02x%02x\n", id[0], id[1], id[2], id[3], id[4], id[5]);
 	return 0;
 }
 
-int psram_read(spi_device_handle_t h, uint32_t addr, void *buf, int len)
+int psram_read(uint32_t addr, void *buf, int len)
 {
 	esp_err_t ret;
 	spi_transaction_ext_t t = { };
@@ -121,18 +148,18 @@ int psram_read(spi_device_handle_t h, uint32_t addr, void *buf, int len)
 	t.dummy_bits = 8;
 
 	gpio_set_level(GPIO_CS, 0);
-	ret = spi_device_polling_transmit(h, (spi_transaction_t*)&t);
+	ret = spi_device_polling_transmit(handle, (spi_transaction_t*)&t);
 	gpio_set_level(GPIO_CS, 1);
 
 	if (ret != ESP_OK) {
-		ESP_LOGE(TAG, "psram_read failed %lx %d\n", addr, len);
+		printf("psram_read failed %lx %d\n", addr, len);
 		return -1;
 	}
 
 	return len;
 }
 
-int psram_write(spi_device_handle_t h, uint32_t addr, void *buf, int len)
+int psram_write(uint32_t addr, void *buf, int len)
 {
 	esp_err_t ret;
 	spi_transaction_t t = {};
@@ -143,15 +170,73 @@ int psram_write(spi_device_handle_t h, uint32_t addr, void *buf, int len)
 	t.length = len * 8;
 
 	gpio_set_level(GPIO_CS, 0);
-	ret = spi_device_polling_transmit(h, &t);
+	ret = spi_device_polling_transmit(handle, &t);
 	gpio_set_level(GPIO_CS, 1);
 
 	if (ret != ESP_OK) {
-		ESP_LOGE(TAG, "psram_write failed %lx %d\n", addr, len);
+		printf("psram_write failed %lx %d\n", addr, len);
 		return -1;
 	}
 
 	return len;
+}
+
+#define dtb_start	0x3ff000
+#define dtb_end		0x3ff5c0
+#define kernel_start	0x200000
+#define kernel_end	0x3c922c
+
+static char dmabuf[64];
+int load_images(int ram_size, int *kern_len, int *dtb_len)
+{
+	int dtb_ptr;
+	long flen;
+	uint32_t addr, flashaddr;
+
+	flen = kernel_end - kernel_start;
+	if (flen > ram_size) {
+		printf("Error: Could not fit RAM image (%ld bytes) into %"PRIu32"\n", flen, ram_size);
+		return -1;
+	}
+	if (kern_len)
+		*kern_len = flen;
+
+	addr = 0;
+	flashaddr = kernel_start;
+	printf("loading kernel Image (%ld bytes) from flash:%lx into psram:%lx\n", flen, flashaddr, addr);
+	while (flen >= 64) {
+		esp_flash_read(NULL, dmabuf, flashaddr, 64);
+		psram_write(handle, addr, dmabuf, 64);
+		addr += 64;
+		flashaddr += 64;
+		flen -= 64;
+	}
+	if (flen) {
+		esp_flash_read(NULL, dmabuf, flashaddr, flen);
+		psram_write(handle, addr, dmabuf, flen);
+	}
+
+	flen = dtb_end - dtb_start;
+	if (dtb_len)
+		*dtb_len = flen;
+	dtb_ptr = ram_size - flen;
+
+	addr = dtb_ptr;
+	flashaddr = dtb_start;
+	printf("loading dtb (%ld bytes) from flash:%lx into psram:%lx\n", flen, flashaddr, addr);
+	while (flen >= 64) {
+		esp_flash_read(NULL, dmabuf, flashaddr, 64);
+		psram_write(handle, addr, dmabuf, 64);
+		addr += 64;
+		flashaddr += 64;
+		flen -= 64;
+	}
+	if (flen) {
+		esp_flash_read(NULL, dmabuf, flashaddr, flen);
+		psram_write(handle, addr, dmabuf, flen);
+	}
+
+	return 0;
 }
 
 #if 0

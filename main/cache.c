@@ -4,19 +4,21 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
 #include "cache.h"
 #include "psram.h"
 
+#define CACHESIZE	4096
 struct cacheline {
 	uint8_t data[64];
 };
 
 static uint64_t accessed, hit;
-static uint32_t tags[4096/64/2][2];
-static struct cacheline cachelines[4096/64/2][2];
+static uint32_t tags[CACHESIZE/64/2][2];
+static struct cacheline cachelines[CACHESIZE/64/2][2];
 
 /*
  * bit[0]: valid
@@ -44,7 +46,7 @@ static inline int get_index(uint32_t addr)
 void cache_write(uint32_t ofs, void *buf, uint32_t size)
 {
 	if (((ofs | (64 - 1)) != ((ofs + size - 1) | (64 - 1))))
-		printf("write cross boundary\n");
+		printf("write cross boundary, ofs:%x size:%x\n", ofs, size);
 
 	int ti, i, index = get_index(ofs);
 	uint32_t *tp;
@@ -69,9 +71,9 @@ void cache_write(uint32_t ofs, void *buf, uint32_t size)
 				p = cachelines[index][ti].data;
 
 				if (*tp & DIRTY) {
-					psram_write(handle, *tp & ~0x3f, p, 64);
+					psram_write(*tp & ~0x3f, p, 64);
 				}
-				psram_read(handle, ofs & ~0x3f, p, 64);
+				psram_read(ofs & ~0x3f, p, 64);
 				*tp = ofs & ~0x3f;
 				*tp |= VALID;
 			}
@@ -80,7 +82,7 @@ void cache_write(uint32_t ofs, void *buf, uint32_t size)
 				continue;
 
 			ti = i;
-			psram_read(handle, ofs & ~0x3f, p, 64);
+			psram_read(ofs & ~0x3f, p, 64);
 			*tp = ofs & ~0x3f;
 			*tp |= VALID;
 		}
@@ -95,7 +97,7 @@ void cache_write(uint32_t ofs, void *buf, uint32_t size)
 void cache_read(uint32_t ofs, void *buf, uint32_t size)
 {
 	if (((ofs | (64 - 1)) != ((ofs + size - 1) | (64 - 1))))
-		printf("read cross boundary\n");
+		printf("read cross boundary, ofs:%x size:%x\n", ofs, size);
 
 	int ti, i, index = get_index(ofs);
 	uint32_t *tp;
@@ -120,9 +122,9 @@ void cache_read(uint32_t ofs, void *buf, uint32_t size)
 				p = cachelines[index][ti].data;
 
 				if (*tp & DIRTY) {
-					psram_write(handle, *tp & ~0x3f, p, 64);
+					psram_write(*tp & ~0x3f, p, 64);
 				}
-				psram_read(handle, ofs & ~0x3f, p, 64);
+				psram_read(ofs & ~0x3f, p, 64);
 				*tp = ofs & ~0x3f;
 				*tp |= VALID;
 			}
@@ -131,7 +133,7 @@ void cache_read(uint32_t ofs, void *buf, uint32_t size)
 				continue;
 
 			ti = i;
-			psram_read(handle, ofs & ~0x3f, p, 64);
+			psram_read(ofs & ~0x3f, p, 64);
 			*tp = ofs & ~0x3f;
 			*tp |= VALID;
 		}
