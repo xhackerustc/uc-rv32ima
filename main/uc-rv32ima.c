@@ -98,8 +98,6 @@ struct MiniRV32IMAState core;
 
 void app_main(void)
 {
-	int dtb_len;
-
 	printf("psram init\n");
 
 	if (psram_init() < 0) {
@@ -109,13 +107,11 @@ void app_main(void)
 
 restart:
 
-	if (load_images(ram_amt, NULL, &dtb_len) < 0)
+	if (load_images(ram_amt, NULL) < 0)
 		return;
 
 	core.pc = MINIRV32_RAM_IMAGE_OFFSET;
 	core.regs[10] = 0x00; //hart ID
-	 //dtb_pa must be valid pointer
-	core.regs[11] = ram_amt - dtb_len + MINIRV32_RAM_IMAGE_OFFSET;
 	core.extraflags |= 3; // Machine-mode.
 
 	// Image is loaded.

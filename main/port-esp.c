@@ -181,15 +181,12 @@ int psram_write(uint32_t addr, void *buf, int len)
 	return len;
 }
 
-#define dtb_start	0x3ff000
-#define dtb_end		0x3ff5c0
 #define kernel_start	0x200000
-#define kernel_end	0x3c922c
+#define kernel_end	0x363b8c
 
 static char dmabuf[64];
-int load_images(int ram_size, int *kern_len, int *dtb_len)
+int load_images(int ram_size, int *kern_len)
 {
-	int dtb_ptr;
 	long flen;
 	uint32_t addr, flashaddr;
 
@@ -204,26 +201,6 @@ int load_images(int ram_size, int *kern_len, int *dtb_len)
 	addr = 0;
 	flashaddr = kernel_start;
 	printf("loading kernel Image (%ld bytes) from flash:%lx into psram:%lx\n", flen, flashaddr, addr);
-	while (flen >= 64) {
-		esp_flash_read(NULL, dmabuf, flashaddr, 64);
-		psram_write(handle, addr, dmabuf, 64);
-		addr += 64;
-		flashaddr += 64;
-		flen -= 64;
-	}
-	if (flen) {
-		esp_flash_read(NULL, dmabuf, flashaddr, flen);
-		psram_write(handle, addr, dmabuf, flen);
-	}
-
-	flen = dtb_end - dtb_start;
-	if (dtb_len)
-		*dtb_len = flen;
-	dtb_ptr = ram_size - flen;
-
-	addr = dtb_ptr;
-	flashaddr = dtb_start;
-	printf("loading dtb (%ld bytes) from flash:%lx into psram:%lx\n", flen, flashaddr, addr);
 	while (flen >= 64) {
 		esp_flash_read(NULL, dmabuf, flashaddr, 64);
 		psram_write(handle, addr, dmabuf, 64);

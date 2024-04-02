@@ -12,7 +12,7 @@
 extern struct MiniRV32IMAState core;
 extern void DumpState(struct MiniRV32IMAState *core);
 extern void app_main(void);
-extern char kernel_start[], kernel_end[], dtb_start[], dtb_end[];
+extern char kernel_start[], kernel_end[];
 
 static int ramfd;
 static int is_eofd;
@@ -108,9 +108,8 @@ int psram_write(uint32_t addr, void *buf, int len)
 	write(ramfd, buf, len);
 }
 
-int load_images(int ram_size, int *kern_len, int *dtb_len)
+int load_images(int ram_size, int *kern_len)
 {
-	int dtb_ptr;
 	long flen;
 
 	flen = kernel_end - kernel_start;
@@ -122,14 +121,6 @@ int load_images(int ram_size, int *kern_len, int *dtb_len)
 		*kern_len = flen;
 
 	write(ramfd, kernel_start, flen);
-
-	flen = dtb_end - dtb_start;
-	if (dtb_len)
-		*dtb_len = flen;
-
-	dtb_ptr = ram_size - flen;
-	lseek(ramfd, dtb_ptr, SEEK_SET);
-	write(ramfd, dtb_start, flen);
 
 	return 0;
 }

@@ -4,8 +4,3 @@
 kernel_start:
 .incbin "Image"
 kernel_end:
-
-	.balign 16
-dtb_start:
-.incbin "uc.dtb"
-dtb_end:
