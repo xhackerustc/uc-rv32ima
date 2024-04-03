@@ -17,12 +17,6 @@ extern char kernel_start[], kernel_end[];
 static int ramfd;
 static int is_eofd;
 
-static void CtrlC(int sig)
-{
-	DumpState(&core);
-	exit(0);
-}
-
 static void ResetKeyboardInput(void)
 {
 	// Re-enable echo, etc. on keyboard.
@@ -32,13 +26,19 @@ static void ResetKeyboardInput(void)
 	tcsetattr(0, TCSANOW, &term);
 }
 
+static void CtrlC(int sig)
+{
+	DumpState(&core);
+	ResetKeyboardInput();
+	exit(0);
+}
+
 // Override keyboard, so we can capture all keyboard input for the VM.
 static void CaptureKeyboardInput(void)
 {
 	struct termios term;
 
 	// Hook exit, because we want to re-enable keyboard.
-	atexit(ResetKeyboardInput);
 	signal(SIGINT, CtrlC);
 
 	tcgetattr(0, &term);
@@ -61,7 +61,7 @@ int ReadKBByte(void)
 	if (is_eofd)
 		return 0xffffffff;
 
-	rread = read(fileno(stdin), &rxchar, 1);
+	rread = read(0, &rxchar, 1);
 
 	if (rread > 0) // Tricky: getchar can't be used with arrow keys.
 		return rxchar;
@@ -78,7 +78,7 @@ int IsKBHit(void)
 
 	ioctl(0, FIONREAD, &byteswaiting);
 	// Is end-of-file for
-	if (!byteswaiting && write(fileno(stdin), 0, 0 ) != 0) {
+	if (!byteswaiting && write(0, 0, 0 ) != 0) {
 		is_eofd = 1;
 		return -1;
 	}
