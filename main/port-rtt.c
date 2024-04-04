@@ -19,9 +19,9 @@
 extern struct MiniRV32IMAState core;
 extern void DumpState(struct MiniRV32IMAState *core);
 extern void app_main(void);
-//extern char kernel_start[], kernel_end[];
-#define kernel_start 0x60000
-#define kernel_end 0x1e3b94
+extern char kernel_start[], kernel_end[];
+//#define kernel_start 0x60000
+//#define kernel_end 0x1e3b94
 
 static int is_eofd;
 
